@@ -334,3 +334,53 @@ The published answer was wrong mostly because of Berlin: its three spellings spl
 Queries: `SELECT count(*) AS usage_rows, count(cost_eur) AS with_cost, sum(cost_eur) AS total_eur FROM usage_daily;` and `SELECT count(*) AS usage_rows FROM usage_daily WHERE cost_eur IS NULL;`
 
 The old figure left out the 2991 readings with a blank cost, and it also counted readings that later repairs deleted: credits, test accounts' readings, orphan instances' readings and readings loaded twice.
+
+## Constraints
+
+| # | the statement | what it closes |
+|---:|---|---|
+| 1 | `ALTER TABLE instances ADD CONSTRAINT fk_instances_customer FOREIGN KEY (customer_ref) REFERENCES customers (customer_id);` | `## Relationships`: `instances.customer_ref` → `customers.customer_id` |
+| 2 | `ALTER TABLE invoices ADD CONSTRAINT fk_invoices_customer FOREIGN KEY (customer_ref) REFERENCES customers (customer_id);` | `## Relationships`: `invoices.customer_ref` → `customers.customer_id` |
+| 3 | `ALTER TABLE usage_daily ADD CONSTRAINT fk_usage_daily_instance FOREIGN KEY (instance_id) REFERENCES instances (instance_id);` | `## Relationships`: `usage_daily.instance_id` → `instances.instance_id` |
+| 4 | `ALTER TABLE invoice_lines ADD CONSTRAINT fk_invoice_lines_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (invoice_id);` | `## Relationships`: `invoice_lines.invoice_id` → `invoices.invoice_id` |
+| 5 | `ALTER TABLE usage_daily ALTER COLUMN cost_eur SET NOT NULL;` | `## Corrections`: Blank `usage_daily.cost_eur` |
+| 6 | `ALTER TABLE customers ADD CONSTRAINT uq_customers_company_name UNIQUE (company_name);` | `## Corrections`: Acme GmbH twice in `customers` |
+| 7 | `ALTER TABLE usage_daily ADD CONSTRAINT uq_usage_daily_instance_day UNIQUE (instance_id, day);` | `## Corrections`: Instance-days loaded twice in `usage_daily` |
+| 8 | `ALTER TABLE usage_daily ADD CONSTRAINT ck_usage_daily_hours CHECK (hours >= 0 AND hours <= 24);` | `## Corrections`: Negative `hours` in `usage_daily` |
+| 9 | `ALTER TABLE customers ADD CONSTRAINT ck_customers_status CHECK (status IN ('active', 'churned'));` | the sentence on the status column, below the Section 4 entries |
+
+The constraints the database holds, from its own catalogue:
+
+```sql
+SELECT c.conrelid::regclass::text AS table_name, c.conname AS name,
+       CASE c.contype WHEN 'f' THEN 'foreign key' WHEN 'u' THEN 'unique' ELSE 'check' END AS kind
+  FROM pg_constraint c
+ WHERE c.connamespace = 'public'::regnamespace AND c.contype IN ('f', 'u', 'c')
+UNION ALL
+SELECT a.attrelid::regclass::text, a.attname::text, 'not null'
+  FROM pg_attribute a JOIN pg_class r ON r.oid = a.attrelid
+ WHERE r.relnamespace = 'public'::regnamespace AND r.relkind = 'r'
+   AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull
+   AND NOT EXISTS (SELECT 1 FROM pg_constraint p
+                    WHERE p.conrelid = a.attrelid AND p.contype = 'p' AND a.attnum = ANY (p.conkey))
+ORDER BY table_name, name;
+```
+
+```
+  table_name   |            name             |    kind     
+---------------+-----------------------------+-------------
+ customers     | ck_customers_status         | check
+ customers     | uq_customers_company_name   | unique
+ instances     | fk_instances_customer       | foreign key
+ invoice_lines | fk_invoice_lines_invoice    | foreign key
+ invoices      | fk_invoices_customer        | foreign key
+ usage_daily   | ck_usage_daily_hours        | check
+ usage_daily   | cost_eur                    | not null
+ usage_daily   | fk_usage_daily_instance     | foreign key
+ usage_daily   | uq_usage_daily_instance_day | unique
+(9 rows)
+```
+
+The unique constraint on `company_name` refuses a second `Acme GmbH` spelled exactly the same, but it lets in `ACME GmbH`: `SELECT company_name, company_name = 'ACME GmbH' AS same_text FROM customers WHERE lower(btrim(company_name)) = 'acme gmbh';` prints `f`, because to PostgreSQL different capital letters make different text.
+
+In `customers.status`, `active` means the customer still buys from CloudByte, and `churned` means a real customer who has left; the constraint allows those two values and nothing else.
