@@ -106,3 +106,32 @@ The eleven tables of `cloudbyte`, one heading each, in the order `schema.sql` de
 ## portal_hits
 
 *Half B's table: the other side maps it.*
+
+## Relationships
+
+| relationship | `INNER JOIN` rows | `LEFT JOIN` rows | the queries that proved it |
+|---|---|---|---|
+| `instances.customer_ref` → `customers.customer_id` | 398 | 404 | `SELECT count(*) AS inner_join FROM instances i JOIN customers c ON c.customer_id = i.customer_ref;` `SELECT count(*) AS left_join FROM instances i LEFT JOIN customers c ON c.customer_id = i.customer_ref;` |
+| `invoices.customer_ref` → `customers.customer_id` | 854 | 854 | `SELECT count(*) AS inner_join FROM invoices v JOIN customers c ON c.customer_id = v.customer_ref;` `SELECT count(*) AS left_join FROM invoices v LEFT JOIN customers c ON c.customer_id = v.customer_ref;` |
+| `usage_daily.instance_id` → `instances.instance_id` | 180660 | 180660 | `SELECT count(*) AS inner_join FROM usage_daily u JOIN instances i ON i.instance_id = u.instance_id;` `SELECT count(*) AS left_join FROM usage_daily u LEFT JOIN instances i ON i.instance_id = u.instance_id;` |
+| `invoice_lines.invoice_id` → `invoices.invoice_id` | 3811 | 3811 | `SELECT count(*) AS inner_join FROM invoice_lines l JOIN invoices v ON v.invoice_id = l.invoice_id;` `SELECT count(*) AS left_join FROM invoice_lines l LEFT JOIN invoices v ON v.invoice_id = l.invoice_id;` |
+
+`invoices` has 854 rows (`SELECT count(*) AS invoices FROM invoices;`). Joined to `invoice_lines` on `invoice_id`, it returns 3811 rows, one for each invoice line (`SELECT count(*) AS after_join FROM invoices v JOIN invoice_lines l ON l.invoice_id = v.invoice_id;`).
+
+Declaring `instances.customer_ref` → `customers.customer_id` as a foreign key:
+
+```sql
+ALTER TABLE instances ADD CONSTRAINT fk_instances_customer
+  FOREIGN KEY (customer_ref) REFERENCES customers (customer_id);
+```
+
+The engine refused it:
+
+```text
+ERROR:  insert or update on table "instances" violates foreign key constraint "fk_instances_customer"
+DETAIL:  Key (customer_ref)=(44) is not present in table "customers".
+```
+
+Two instances carry `44`: `1399` and `1400` (`SELECT instance_id, customer_ref FROM instances WHERE customer_ref = 44 ORDER BY instance_id;`).
+
+In all, 6 instances point at a customer that is not in `customers`, and between them they point at 3 missing customer numbers (`SELECT count(*) AS orphan_instances, count(DISTINCT i.customer_ref) AS missing_customers FROM instances i LEFT JOIN customers c ON i.customer_ref = c.customer_id WHERE c.customer_id IS NULL;`).
