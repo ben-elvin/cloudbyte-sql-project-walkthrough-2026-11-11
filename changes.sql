@@ -92,3 +92,9 @@ COMMIT;
 BEGIN;
 ALTER TABLE customers ADD CONSTRAINT ck_customers_status CHECK (status IN ('active', 'churned'));
 COMMIT;
+
+-- Index for the monthly report: usage_daily by day, with cost_eur
+BEGIN;
+CREATE INDEX ix_usage_daily_day ON usage_daily (day, cost_eur);
+COMMIT;
+VACUUM ANALYZE usage_daily;

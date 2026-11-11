@@ -384,3 +384,29 @@ ORDER BY table_name, name;
 The unique constraint on `company_name` refuses a second `Acme GmbH` spelled exactly the same, but it lets in `ACME GmbH`: `SELECT company_name, company_name = 'ACME GmbH' AS same_text FROM customers WHERE lower(btrim(company_name)) = 'acme gmbh';` prints `f`, because to PostgreSQL different capital letters make different text.
 
 In `customers.status`, `active` means the customer still buys from CloudByte, and `churned` means a real customer who has left; the constraint allows those two values and nothing else.
+
+## The slow report
+
+Kate's monthly report, the spend per day for September 2025. Every plan below was taken on this statement, with `EXPLAIN (ANALYZE, BUFFERS)` in front of it:
+
+```sql
+SELECT u.day, sum(u.cost_eur) AS spend
+FROM usage_daily u
+WHERE u.day BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'
+GROUP BY u.day ORDER BY u.day;
+```
+
+| | node type | `Buffers:` under the line that names `usage_daily u` |
+|---|---|---|
+| Before the index | `Parallel Seq Scan` | 1200 (`shared hit=1200`), every page of the table |
+| After the index | `Index Only Scan` using `ix_usage_daily_day` | 43 (`shared hit=43`) |
+
+The kept index:
+
+```sql
+CREATE INDEX ix_usage_daily_day ON usage_daily (day, cost_eur);
+```
+
+Why it helps: the report's `WHERE` tests `day`, and none of the indexes `usage_daily` held before sorted by `day` first (`usage_daily_pkey` sorts by `usage_id`, `uq_usage_daily_instance_day` by `instance_id`), so the scan read every page to find one month. `ix_usage_daily_day` sorts by `day` first, so September's entries sit together, and it also holds `cost_eur`, the one other column the report reads, so the report is answered from the index alone (`Heap Fetches: 0`).
+
+The before plan can't be re-run while the kept index is on the table: to see it again, drop `ix_usage_daily_day`.
