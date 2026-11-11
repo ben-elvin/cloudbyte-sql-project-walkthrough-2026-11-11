@@ -448,3 +448,26 @@ On a quiet database, when no session is waiting for a lock, the query returns no
 ## For a reader who does not read SQL
 
 The billing data we inherited had several faults that nobody had written down: Berlin was spelled three different ways, so the city's spend was split and looked far smaller than it was; one company, Acme GmbH, was on file twice; two test accounts sat among the real customers; six servers were billed to customers who don't exist; about three thousand days of server use had no cost filled in; twelve days of use were negative, which were really refunds typed in as use; and 195 days of use had been loaded twice. All of these are now fixed in the database: Berlin has one spelling, Acme is one customer, the test accounts and the servers with no customer are gone, every missing cost has been worked out from the hours and the price list, the refunds and the doubled days are removed, and the database now refuses each of these mistakes if anyone tries to make them again. Two things can't be fixed: the usage for July 2025 was never recorded, so that month stays empty, and the original monthly spreadsheets can only be corrected in the answer we give, not in the files themselves. The figures changed as a result: in the half-year spend report Berlin is the most expensive city at about 10,221 euros, not third at about 5,750, and the total metered cost of all servers is now about 1,025,259 euros, against about 1,020,371 euros before the repairs.
+
+## Reproducing this
+
+To rebuild a copy of the repaired database, run three steps, each in its own place. `changes.sql` is in this repository. `load.sql` is not: it comes in `cloudbyte-database.zip`, the database as files, downloaded from https://wbscodingschool.github.io/cloud-courses/sql-project/downloads/cloudbyte-database.zip and unpacked to `~/cloudbyte-sql/cloudbyte-database/`, beside `schema.sql` and the CSV files it reads.
+
+1. The `CREATE DATABASE` statement runs in a psql session connected to `cloudbyte`.
+2. `load.sql` runs from the folder that holds it, `schema.sql` and the CSV files, because it reads them from the folder the terminal is in; anywhere else it stops before it makes a table.
+3. `changes.sql` runs from this repository's folder, `~/cloudbyte-sql-project`.
+
+Replace `<host>` with your instance's endpoint and `<user>` with your role; psql asks for the password.
+
+```
+CREATE DATABASE cloudbyte_fresh OWNER <user>
+  ENCODING 'UTF8' LOCALE_PROVIDER builtin BUILTIN_LOCALE 'C.UTF-8' TEMPLATE template0;
+
+cd ~/cloudbyte-sql/cloudbyte-database/
+psql -h <host> -U <user> -d cloudbyte_fresh -v ON_ERROR_STOP=1 -f load.sql
+
+cd ~/cloudbyte-sql-project
+psql -h <host> -U <user> -d cloudbyte_fresh -v ON_ERROR_STOP=1 -f changes.sql
+```
+
+How far the proof goes: on both `cloudbyte` and `cloudbyte_fresh` I ran one file of checks, the row count of each of the eleven inherited tables, `\d` of each (its columns, which are not null, its indexes and its constraints), and each check under `## Corrections`, and compared the two outputs with `diff`, which printed nothing. The proof does not compare the values in the rows, so a match can't show that a repair wrote the right values. `cloudbyte` has one table the copy doesn't, `billing_export`: it was made in Section 1 from the six monthly spreadsheet exports, not by `load.sql`, and `changes.sql` never touches it, so a copy without it is correct.
