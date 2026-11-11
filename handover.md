@@ -410,3 +410,35 @@ CREATE INDEX ix_usage_daily_day ON usage_daily (day, cost_eur);
 Why it helps: the report's `WHERE` tests `day`, and none of the indexes `usage_daily` held before sorted by `day` first (`usage_daily_pkey` sorts by `usage_id`, `uq_usage_daily_instance_day` by `instance_id`), so the scan read every page to find one month. `ix_usage_daily_day` sorts by `day` first, so September's entries sit together, and it also holds `cost_eur`, the one other column the report reads, so the report is answered from the index alone (`Heap Fetches: 0`).
 
 The before plan can't be re-run while the kept index is on the table: to see it again, drop `ix_usage_daily_day`.
+
+## The blocked session
+
+On my own `cloudbyte`, a session connected as `henry` (Henry, the other Operations admin) held a row-level lock on customer 2, and my own `UPDATE` of the same row waited behind it. I found the blocking session with this query, run in a third session:
+
+```sql
+SELECT w.usename AS waiting, w.wait_event_type, w.wait_event, w.query AS waiting_query,
+       b.usename AS blocking, b.state AS blocking_state, b.query AS blocking_query
+FROM pg_stat_activity w
+JOIN pg_stat_activity b ON b.pid = ANY (pg_blocking_pids(w.pid))
+WHERE w.wait_event_type = 'Lock'
+  AND w.pid <> pg_backend_pid();
+```
+
+The record it printed **while my session was waiting for the lock** (printed with psql's expanded display on):
+
+```
+-[ RECORD 1 ]---+-------------------------------------------------------------
+waiting         | ops_admin
+wait_event_type | Lock
+wait_event      | transactionid
+waiting_query   | UPDATE customers SET city = 'Dresden' WHERE customer_id = 2;
+blocking        | henry
+blocking_state  | idle in transaction
+blocking_query  | UPDATE customers SET city = 'Leipzig' WHERE customer_id = 2;
+```
+
+The statement that held the lock, confirmed against the script I ran in Henry's session (I worked alone and played both parts): `UPDATE customers SET city = 'Leipzig' WHERE customer_id = 2;`
+
+What I'd do about a blocking session whose whole transaction I can't see: ask its owner to end it with `COMMIT` or `ROLLBACK`, and not end the session myself. `blocking_query` shows only the session's last statement, and ending the session rolls back everything its transaction did, including writes I never saw. On this instance I can't end it anyway: when I tried to end `henry`'s session, PostgreSQL refused with `ERROR:  permission denied to terminate process`.
+
+On a quiet database, when no session is waiting for a lock, the query returns no rows, so running it now prints `(0 rows)`; the record above is from the moment of the wait.
