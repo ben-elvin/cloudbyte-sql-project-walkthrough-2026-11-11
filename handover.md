@@ -14,20 +14,20 @@ The eleven tables of `cloudbyte`, one heading each, in the order `schema.sql` de
 
 ## customers
 
-*43 rows.* `SELECT count(*) FROM customers;`
+*40 rows.* `SELECT count(*) FROM customers;`
 
 | column | what it holds | the query that proved it |
 |---|---|---|
-| `customer_id` | the customer's number, from `1` to `43` | `SELECT min(customer_id), max(customer_id), min(signed_on) AS first_signed, max(signed_on) AS last_signed, count(*) FROM customers;` |
-| `company_name` | the customer's company name written out in full: `Acme GmbH`, `Brandt Logistik`, `Cordes AG` | `SELECT customer_id, company_name FROM customers ORDER BY customer_id LIMIT 5;` |
-| `city` | the city the customer is in, 28 spellings; Berlin appears as `Berlin` 7, `Berlín` 1 and `berlin` 2 | `SELECT city, count(*) FROM customers GROUP BY city ORDER BY city;` |
-| `country` | a two-letter country code: `AT` 1, `CH` 1, `DE` 40, `SE` 1 | `SELECT country, count(*) FROM customers GROUP BY country ORDER BY country;` |
+| `customer_id` | the customer's number, from `1` to `40` | `SELECT min(customer_id), max(customer_id), min(signed_on) AS first_signed, max(signed_on) AS last_signed, count(*) FROM customers;` |
+| `company_name` | the customer's company name written out in full: `Acme GmbH`, `Brandt Logistik`, `Cordes AG`; no two rows may hold the same name, by `uq_customers_company_name` | `SELECT customer_id, company_name FROM customers ORDER BY customer_id LIMIT 5;` |
+| `city` | the city the customer is in, 26 cities; Berlin is spelled one way, `Berlin` 7 | `SELECT city, count(*) FROM customers GROUP BY city ORDER BY city;` |
+| `country` | a two-letter country code: `AT` 1, `CH` 1, `DE` 37, `SE` 1 | `SELECT country, count(*) FROM customers GROUP BY country ORDER BY country;` |
 | `signed_on` | the day the customer signed, from `2023-01-17` to `2025-04-08` | `SELECT min(customer_id), max(customer_id), min(signed_on) AS first_signed, max(signed_on) AS last_signed, count(*) FROM customers;` |
-| `plan` | which of three plans the customer is on: `basic` 16, `enterprise` 9, `standard` 18 | `SELECT plan, count(*) FROM customers GROUP BY plan ORDER BY plan;` |
-| `status` | `active` 38 or `churned` 5 | `SELECT status, count(*) FROM customers GROUP BY status ORDER BY status;` |
-| `contact_1_email` | a first contact's email address, filled on 41 of the 43 customers | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
-| `contact_2_email` | a second contact's email address, filled on 29 of the 43 | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
-| `contact_3_email` | a third contact's email address, filled on 2 of the 43. A fourth contact has nowhere to go: no column holds one, and finding a customer by a contact's address means searching all three columns | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
+| `plan` | which of three plans the customer is on: `basic` 14, `enterprise` 8, `standard` 18 | `SELECT plan, count(*) FROM customers GROUP BY plan ORDER BY plan;` |
+| `status` | `active` 35 or `churned` 5; `ck_customers_status` allows those two values and no other | `SELECT status, count(*) FROM customers GROUP BY status ORDER BY status;` |
+| `contact_1_email` | a first contact's email address, filled on 40 of the 40 customers | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
+| `contact_2_email` | a second contact's email address, filled on 29 of the 40 | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
+| `contact_3_email` | a third contact's email address, filled on 2 of the 40. A fourth contact has nowhere to go: no column holds one, and finding a customer by a contact's address means searching all three columns | `SELECT count(*) FILTER (WHERE contact_1_email <> '') AS has_1, count(*) FILTER (WHERE contact_2_email <> '') AS has_2, count(*) FILTER (WHERE contact_3_email <> '') AS has_3 FROM customers;` |
 
 ## pricing
 
@@ -40,56 +40,56 @@ The eleven tables of `cloudbyte`, one heading each, in the order `schema.sql` de
 
 ## instances
 
-*404 rows.* `SELECT count(*) FROM instances;`
+*394 rows.* `SELECT count(*) FROM instances;`
 
 | column | what it holds | the query that proved it |
 |---|---|---|
-| `instance_id` | the instance's number, from `1001` to `1404` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
-| `customer_ref` | a customer number, from `1` to `46` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
-| `region` | which of three regions it runs in: `eu-central-1` 138, `eu-north-1` 141, `eu-west-1` 125 | `SELECT region, count(*) FROM instances GROUP BY region ORDER BY region;` |
-| `instance_type` | its size: `cb.gpu` 91, `cb.large` 87, `cb.medium` 65, `cb.small` 77, `cb.xlarge` 84 | `SELECT instance_type, count(*) FROM instances GROUP BY instance_type ORDER BY instance_type;` |
+| `instance_id` | the instance's number, from `1001` to `1394` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
+| `customer_ref` | a customer number, from `1` to `40`; every one is a row of `customers`, by `fk_instances_customer` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
+| `region` | which of three regions it runs in: `eu-central-1` 135, `eu-north-1` 136, `eu-west-1` 123 | `SELECT region, count(*) FROM instances GROUP BY region ORDER BY region;` |
+| `instance_type` | its size: `cb.gpu` 90, `cb.large` 84, `cb.medium` 62, `cb.small` 76, `cb.xlarge` 82 | `SELECT instance_type, count(*) FROM instances GROUP BY instance_type ORDER BY instance_type;` |
 | `launched_on` | the day it was launched, from `2024-01-01` to `2025-10-02` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
 | `terminated_on` | the day it was shut down, from `2024-03-29` to `2025-12-27` | `SELECT min(instance_id), max(instance_id), min(customer_ref), max(customer_ref), min(launched_on) AS first_launch, max(launched_on) AS last_launch, min(terminated_on) AS first_term, max(terminated_on) AS last_term, count(*) FROM instances;` |
 
 ## usage_daily
 
-*180660 rows.* `SELECT count(*) FROM usage_daily;`
+*177003 rows.* `SELECT count(*) FROM usage_daily;`
 
 | column | what it holds | the query that proved it |
 |---|---|---|
-| `usage_id` | the row's number, from `1` to `180660` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
-| `instance_id` | an instance number, from `1001` to `1404` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
+| `usage_id` | the row's number, from `1` to `177003` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
+| `instance_id` | an instance number, from `1001` to `1394`; every one is a row of `instances`, by `fk_usage_daily_instance`, and one row per instance and `day`, by `uq_usage_daily_instance_day` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
 | `day` | the day the usage was for, from `2024-01-01` to `2025-12-31` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
-| `hours` | hours run that day, from `-20` to `24` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
-| `cost_eur` | what that day cost, from `-9.6200` to `17.7600` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
+| `hours` | hours run that day, from `1` to `24`; `ck_usage_daily_hours` keeps it between 0 and 24 | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
+| `cost_eur` | what that day cost, from `0.0240` to `17.7600`; never blank, by the not-null constraint on `cost_eur` | `SELECT min(usage_id), max(usage_id), min(instance_id), max(instance_id), min(day), max(day), min(hours), max(hours), min(cost_eur), max(cost_eur), count(*) FROM usage_daily;` |
 
-`usage_daily` has no row for July 2025: 10067 rows in June, 0 in July and 10735 in August. Found with `SELECT count(*) FILTER (WHERE day BETWEEN DATE '2025-06-01' AND DATE '2025-06-30') AS jun_2025, count(*) FILTER (WHERE day BETWEEN DATE '2025-07-01' AND DATE '2025-07-31') AS jul_2025, count(*) FILTER (WHERE day BETWEEN DATE '2025-08-01' AND DATE '2025-08-31') AS aug_2025 FROM usage_daily;`
+`usage_daily` has no row for July 2025: 9968 rows in June, 0 in July and 10632 in August. Found with `SELECT count(*) FILTER (WHERE day BETWEEN DATE '2025-06-01' AND DATE '2025-06-30') AS jun_2025, count(*) FILTER (WHERE day BETWEEN DATE '2025-07-01' AND DATE '2025-07-31') AS jul_2025, count(*) FILTER (WHERE day BETWEEN DATE '2025-08-01' AND DATE '2025-08-31') AS aug_2025 FROM usage_daily;`
 
 ## invoices
 
-*854 rows.* `SELECT count(*) FROM invoices;`
+*810 rows.* `SELECT count(*) FROM invoices;`
 
 | column | what it holds | the query that proved it |
 |---|---|---|
-| `invoice_id` | the invoice's number, from `5001` to `5854` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
-| `customer_ref` | a customer number, from `1` to `43` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
+| `invoice_id` | the invoice's number, from `5001` to `5810` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
+| `customer_ref` | a customer number, from `1` to `40`; every one is a row of `customers`, by `fk_invoices_customer` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
 | `period_month` | the month billed, as its first day, from `2024-01-01` to `2025-12-01` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
 | `issued_on` | the day the invoice was sent, from `2024-02-05` to `2026-01-05` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
-| `status` | `open` 174, `overdue` 151 or `paid` 529 | `SELECT status, count(*) FROM invoices GROUP BY status ORDER BY status;` |
+| `status` | `open` 159, `overdue` 143 or `paid` 508 | `SELECT status, count(*) FROM invoices GROUP BY status ORDER BY status;` |
 | `total_eur` | the invoice total, from `12.97` to `2338.73` | `SELECT min(invoice_id), max(invoice_id), min(customer_ref), max(customer_ref), min(period_month), max(period_month), min(issued_on), max(issued_on), min(total_eur), max(total_eur), count(*) FROM invoices;` |
 
 ## invoice_lines
 
-*3811 rows.* `SELECT count(*) FROM invoice_lines;`
+*3736 rows.* `SELECT count(*) FROM invoice_lines;`
 
 | column | what it holds | the query that proved it |
 |---|---|---|
-| `line_id` | the line's number, from `20001` to `23811` | `SELECT min(line_id), max(line_id), min(invoice_id), max(invoice_id), min(qty), max(qty), count(*) FROM invoice_lines;` |
-| `invoice_id` | an invoice number, from `5001` to `5854` | `SELECT min(line_id), max(line_id), min(invoice_id), max(invoice_id), min(qty), max(qty), count(*) FROM invoice_lines;` |
+| `line_id` | the line's number, from `20001` to `23736` | `SELECT min(line_id), max(line_id), min(invoice_id), max(invoice_id), min(qty), max(qty), count(*) FROM invoice_lines;` |
+| `invoice_id` | an invoice number, from `5001` to `5810`; every one is a row of `invoices`, by `fk_invoice_lines_invoice` | `SELECT min(line_id), max(line_id), min(invoice_id), max(invoice_id), min(qty), max(qty), count(*) FROM invoice_lines;` |
 | `line_desc` | a description written out, a size and an instance: `cb.medium compute, instance 1007` | `SELECT line_id, line_desc FROM invoice_lines ORDER BY line_id LIMIT 5;` |
 | `qty` | a quantity, from `400` to `744` | `SELECT min(line_id), max(line_id), min(invoice_id), max(invoice_id), min(qty), max(qty), count(*) FROM invoice_lines;` |
-| `trn_amt_3` | the line's charge in whole cents, `qty` hours times the hourly rate in cents: the ratio comes back as five rates, `2.40` 601, `4.80` 524, `9.60` 880, `19.20` 831 and `74.00` 975, which add up to all 3811 lines | `SELECT round(trn_amt_3 * 1.0 / qty, 2) AS per_unit, count(*) FROM invoice_lines WHERE qty > 0 GROUP BY per_unit ORDER BY per_unit;` |
-| `vat_rate` | one rate on every line: `0.190` 3811 | `SELECT vat_rate, count(*) FROM invoice_lines GROUP BY vat_rate ORDER BY vat_rate;` |
+| `trn_amt_3` | the line's charge in whole cents, `qty` hours times the hourly rate in cents: the ratio comes back as five rates, `2.40` 580, `4.80` 505, `9.60` 845, `19.20` 831 and `74.00` 975, which add up to all 3736 lines | `SELECT round(trn_amt_3 * 1.0 / qty, 2) AS per_unit, count(*) FROM invoice_lines WHERE qty > 0 GROUP BY per_unit ORDER BY per_unit;` |
+| `vat_rate` | one rate on every line: `0.190` 3736 | `SELECT vat_rate, count(*) FROM invoice_lines GROUP BY vat_rate ORDER BY vat_rate;` |
 
 ## contacts
 
@@ -108,6 +108,8 @@ The eleven tables of `cloudbyte`, one heading each, in the order `schema.sql` de
 *Half B's table: the other side maps it.*
 
 ## Relationships
+
+*Taken in Section 3, on the database as loaded, before any repair. The current figures are under the table headings above; these stay as they were found.*
 
 | relationship | `INNER JOIN` rows | `LEFT JOIN` rows | the queries that proved it |
 |---|---|---|---|
@@ -442,3 +444,7 @@ The statement that held the lock, confirmed against the script I ran in Henry's 
 What I'd do about a blocking session whose whole transaction I can't see: ask its owner to end it with `COMMIT` or `ROLLBACK`, and not end the session myself. `blocking_query` shows only the session's last statement, and ending the session rolls back everything its transaction did, including writes I never saw. On this instance I can't end it anyway: when I tried to end `henry`'s session, PostgreSQL refused with `ERROR:  permission denied to terminate process`.
 
 On a quiet database, when no session is waiting for a lock, the query returns no rows, so running it now prints `(0 rows)`; the record above is from the moment of the wait.
+
+## For a reader who does not read SQL
+
+The billing data we inherited had several faults that nobody had written down: Berlin was spelled three different ways, so the city's spend was split and looked far smaller than it was; one company, Acme GmbH, was on file twice; two test accounts sat among the real customers; six servers were billed to customers who don't exist; about three thousand days of server use had no cost filled in; twelve days of use were negative, which were really refunds typed in as use; and 195 days of use had been loaded twice. All of these are now fixed in the database: Berlin has one spelling, Acme is one customer, the test accounts and the servers with no customer are gone, every missing cost has been worked out from the hours and the price list, the refunds and the doubled days are removed, and the database now refuses each of these mistakes if anyone tries to make them again. Two things can't be fixed: the usage for July 2025 was never recorded, so that month stays empty, and the original monthly spreadsheets can only be corrected in the answer we give, not in the files themselves. The figures changed as a result: in the half-year spend report Berlin is the most expensive city at about 10,221 euros, not third at about 5,750, and the total metered cost of all servers is now about 1,025,259 euros, against about 1,020,371 euros before the repairs.
